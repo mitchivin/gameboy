@@ -7,8 +7,9 @@ Live demo: [builds.doodledev.app/#/miboy](https://builds.doodledev.app/?go=1#/mi
 The shell was designed in **[DoodleDev](https://doodledev.app)** and sits in the page as normal HTML/CSS. No framework, no runtime deps.
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/3d5f50f4-df81-4053-91f8-c0950d3c4fdf" alt="MI Boy Color handheld shell" />
+  <img src="https://github.com/user-attachments/assets/aa86dca0-ebf4-49d6-9d72-01fe748fae08" alt="MI Boy Color shell demo LCD" />
 </p>
+
 
 ## Features
 
@@ -20,7 +21,7 @@ The shell was designed in **[DoodleDev](https://doodledev.app)** and sits in the
 - Plain static site. Serve the folder from anywhere
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/19578b7e-8336-4505-9b39-42e93df11548" alt="MI Boy Color shell demo LCD" />
+  <img src="https://github.com/user-attachments/assets/0f6230cf-3912-49eb-b7d3-7bddb74c7312" alt="MI Boy Color handheld shell" />
 </p>
 
 ## Run locally
