@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#02110c">
+  <!-- First paint -->
+  <style>
+    html {
+      background-color: #02110c !important;
+      background: #02110c !important;
+    }
+    html, body {
+      margin: 0;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      background-color: #02110c !important;
+      background:
+        radial-gradient(ellipse 62% 70% at -8% 52%, rgba(34, 197, 94, 0.09), transparent 78%),
+        radial-gradient(ellipse 64% 72% at 108% 48%, rgba(16, 185, 129, 0.08), transparent 80%),
+        radial-gradient(circle at 18% 22%, rgba(110, 231, 183, 0.03), transparent 48%),
+        radial-gradient(circle at 82% 26%, rgba(74, 222, 128, 0.025), transparent 50%),
+        linear-gradient(180deg, #02110c 0%, #010806 48%, #000302 100%) !important;
+    }
+    /* Hide device only — keep menu button visible during boot */
+    body.app-loading #gameboy-container {
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+    #app-shell-loader {
+      position: fixed !important;
+      inset: 0 !important;
+      z-index: 20000 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      pointer-events: none !important;
+      background: transparent !important;
+    }
+    body:not(.app-loading) #app-shell-loader { display: none !important; }
+    .shell-boot-spinner {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid rgba(134, 239, 172, 0.16);
+      border-top-color: rgba(134, 239, 172, 0.95);
+      box-shadow: 0 0 22px rgba(74, 222, 128, 0.22);
+      animation: shellBootSpin 0.85s linear infinite;
+    }
+    @keyframes shellBootSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    /* Header visible during boot (before layout.css) */
+    #shell-help {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 30001;
+      width: 100%;
+      height: 52px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      background: rgba(2, 17, 12, 0.42);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .shell-help-bar {
+      display: flex;
+      flex: 1;
+      width: 100%;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0;
+    }
+    .shell-brand-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4em;
+      height: 52px;
+      margin: 0;
+      padding: 0 0 0 16px;
+      border: none;
+      background: transparent;
+      color: rgba(190, 230, 205, 0.72);
+      font: 500 14px/1 'Source Sans 3', sans-serif;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .shell-brand-name { color: rgba(220, 245, 228, 0.92); font-weight: 600; }
+    .shell-brand-tag { color: rgba(160, 210, 180, 0.48); font-weight: 500; }
+    .shell-brand-caret { display: block; width: 12px; height: 8px; color: rgba(160, 210, 180, 0.55); }
+    .shell-help-actions { display: flex; align-items: center; height: 52px; }
+    #shell-help-toggle {
+      box-sizing: border-box;
+      height: 52px;
+      margin: 0;
+      border: none;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.9);
+      cursor: pointer;
+      display: inline-flex !important;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.48;
+    }
+    #shell-controls-toggle { width: 52px; padding: 0; }
+    #shell-help-toggle { width: auto; padding: 0 16px 0 12px; justify-content: flex-end; }
+    #shell-help-panel[hidden],
+    #shell-brand-menu[hidden] { display: none !important; }
+    @media (max-width: 600px) {
+      #shell-help {
+        height: calc(48px + env(safe-area-inset-top, 0px));
+        padding-top: env(safe-area-inset-top, 0px);
+      }
+      .shell-brand-btn { height: 48px; font-size: 13px; padding-left: 10px; }
+      .shell-help-actions { height: 48px; }
+      #shell-help-toggle { height: 48px; }
+      #shell-controls-toggle { width: 48px; }
+      #shell-help-toggle { padding: 0 10px 0 8px; }
+    }
+  </style>
+  <title>MI Boy Color</title>
+  <meta name="description"
+    content="Open-source DoodleDev handheld shell for MI Boy Color. Live demo: https://builds.doodledev.app/#/miboy">
+  <meta name="author" content="Mitch Ivin">
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+  <link rel="canonical" href="https://mitchivin.github.io/miboy/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="MI Boy Color">
+  <meta property="og:title" content="MI Boy Color">
+  <meta property="og:description"
+    content="Handheld shell designed in DoodleDev. Live demo: https://builds.doodledev.app/#/miboy">
+  <meta property="og:url" content="https://mitchivin.github.io/miboy/">
+  <meta property="og:image" content="https://mitchivin.github.io/miboy/public/meta/interactive-gameboy-og.jpg">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="MI Boy Color">
+  <meta name="twitter:description"
+    content="Open-source shell only. Full demo on DoodleBuilds.">
+  <meta name="twitter:image" content="https://mitchivin.github.io/miboy/public/meta/interactive-gameboy-og.jpg">
+
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "MI Boy Color",
+      "applicationCategory": "GameApplication",
+      "operatingSystem": "Web",
+      "url": "https://mitchivin.github.io/miboy/",
+      "description": "Open-source DoodleDev shell for MI Boy Color. Live demo: https://builds.doodledev.app/#/miboy",
+      "author": {
+        "@type": "Person",
+        "name": "Mitch Ivin",
+        "url": "https://mitchivin.com/"
+      }
+    }
+  </script>
+  <link rel="icon" type="image/png" href="public/meta/fav.png">
+  <link rel="stylesheet" href="css/gameboy-bundle.css">
+  <style id="shell-press-hits">
+    #a-hitarea, #b-hitarea, #start-hitarea, #select-hitarea, #dpad-hitarea {
+      pointer-events: auto !important;
+      z-index: 80 !important;
+    }
+    #a, #b, #start, #select, #dpad {
+      pointer-events: auto !important;
+    }
+    #a .item, #b .item, #start .item, #select .item,
+    #dpad .item, #a img, #b img {
+      pointer-events: none !important;
+    }
+    #gb-keys-toggle {
+      pointer-events: auto !important;
+      cursor: pointer !important;
+    }
+    #gb-keys-toggle.is-menu-open .gb-face-hotspot-art {
+      opacity: 0.6;
+    }
+    @media (hover: hover) {
+      #gb-keys-toggle:hover .gb-face-hotspot-art {
+        opacity: 0.6;
+      }
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Barlow+Condensed:wght@700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=block">
+</head>
+
+<body class="app-loading" style="background-color:#02110c;margin:0;">
+  <!-- Spinner + menu first; device hidden until boot finishes -->
+  <div id="app-shell-loader" aria-live="polite" aria-label="Loading" style="position:fixed;inset:0;z-index:20000;display:flex;align-items:center;justify-content:center;pointer-events:none;">
+    <div class="shell-boot-spinner" aria-hidden="true" style="width:28px;height:28px;border-radius:50%;border:2px solid rgba(134,239,172,0.16);border-top-color:rgba(134,239,172,0.95);box-shadow:0 0 22px rgba(74,222,128,0.22);animation:shellBootSpin 0.85s linear infinite;"></div>
+  </div>
+
+  <div id="shell-help" style="position:fixed;top:0;left:0;right:0;z-index:30001;">
+    <div class="shell-help-bar">
+      <div class="shell-brand" id="shell-brand">
+        <button type="button" class="shell-brand-btn" id="shell-brand-btn" disabled tabindex="-1">
+          <span class="shell-brand-name">MI Boy</span>
+          <span class="shell-brand-tag">Shell</span>
+        </button>
+      </div>
+      <div class="shell-help-actions">
+        
+
+        <button type="button" id="shell-help-toggle" aria-label="Menu" aria-expanded="false" aria-controls="shell-help-panel">
+          <span class="material-symbols-outlined shell-help-icon-menu" aria-hidden="true">menu</span>
+        </button>
+      </div>
+    </div>
+    
+
+    <div id="shell-help-panel" role="menu" hidden>
+      <div class="shell-help-subheader">Built with</div>
+      <a class="shell-help-link" id="shell-help-doodledev" href="https://doodledev.app" target="_blank" rel="noopener noreferrer">
+        <span class="material-symbols-outlined shell-help-icon" aria-hidden="true">open_in_new</span>
+        <span class="shell-help-label">DoodleDev</span>
+      </a>
+      <div class="shell-help-subheader">Developed by Mitch Ivin</div>
+      <a class="shell-help-link" id="shell-help-github" href="https://github.com/mitchivin" target="_blank" rel="noopener noreferrer">
+        <svg class="shell-help-icon shell-help-icon--github" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+        </svg>
+        <span class="shell-help-label">Mitch's Github</span>
+      </a>
+      <a class="shell-help-link" id="shell-help-instagram" href="https://www.instagram.com/mitchivin/" target="_blank" rel="noopener noreferrer">
+        <span class="material-symbols-outlined shell-help-icon" aria-hidden="true">photo_camera</span>
+        <span class="shell-help-label">Mitch's Instagram</span>
+      </a>
+      <a class="shell-help-link" id="shell-help-linkedin" href="https://www.linkedin.com/in/mitchivin/" target="_blank" rel="noopener noreferrer">
+        <span class="material-symbols-outlined shell-help-icon" aria-hidden="true">work</span>
+        <span class="shell-help-label">Mitch's LinkedIn</span>
+      </a>
+      <a class="shell-help-link" id="shell-help-author" href="https://mitchivin.com/" target="_blank" rel="noopener noreferrer">
+        <span class="material-symbols-outlined shell-help-icon" aria-hidden="true">person</span>
+        <span class="shell-help-label">Mitch's Portfolio</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- ── Device Shell ───────────────────────────────────────── -->
+  <div id="gameboy-container">
+    <!-- SVG Defs -->
+    <svg id="doodle-defs" aria-hidden="true" width="0" height="0" style="height:1px;left:-100px;opacity:0;overflow:hidden;pointer-events:none;position:fixed;top:-100px;width:1px">
+      <defs>
+        <linearGradient id="shared-fill-1" x1="56.96%" y1="0.49%" x2="43.04%" y2="99.51%">
+          <stop offset="0%" stop-color="#151515"></stop>
+          <stop offset="100%" stop-color="#2f2f2f"></stop>
+        </linearGradient>
+        <linearGradient id="shared-fill-3" x1="93.73%" y1="74.24%" x2="6.27%" y2="25.76%">
+          <stop offset="0%" stop-color="#181818"></stop>
+          <stop offset="100%" stop-color="#0f0f0f"></stop>
+        </linearGradient>
+        <linearGradient id="shared-fill-4" x1="50%" y1="0%" x2="50%" y2="100%">
+          <stop offset="0%" stop-color="#010101"></stop>
+          <stop offset="96%" stop-color="#2c2c2c"></stop>
+        </linearGradient>
+        <linearGradient id="shared-fill-5" x1="50%" y1="0%" x2="50%" y2="100%">
+          <stop offset="0%" stop-color="#404040"></stop>
+          <stop offset="100%" stop-color="#1a1a1a"></stop>
+        </linearGradient>
+        <linearGradient id="shared-fill-7" x1="82.14%" y1="11.7%" x2="17.86%" y2="88.3%">
+          <stop offset="0%" stop-color="#2f2f2f"></stop>
+          <stop offset="100%" stop-color="#151515"></stop>
+        </linearGradient>
+        <linearGradient id="shared-stroke-8" x1="50%" y1="0%" x2="50%" y2="100%">
+          <stop offset="0%" stop-color="#1b0034"></stop>
+          <stop offset="100%" stop-color="#8e14e5"></stop>
+        </linearGradient>
+        <linearGradient id="shared-stroke-9" x1="50%" y1="0%" x2="50%" y2="100%">
+          <stop offset="0%" stop-color="#4f4f4f"></stop>
+          <stop offset="100%" stop-color="#1c1c1c"></stop>
+        </linearGradient>
+        <linearGradient id="shared-fill-10" x1="50%" y1="0%" x2="50%" y2="100%">
+          <stop offset="0%" stop-color="#800000"></stop>
+          <stop offset="100%" stop-color="#ff0000"></stop>
+        </linearGradient>
+        <linearGradient id="shared-fill-11" x1="50%" y1="0%" x2="50%" y2="100%">
+          <stop offset="0%" stop-color="#717171"></stop>
+          <stop offset="100%" stop-color="#000000"></stop>
+        </linearGradient>
+        <linearGradient id="stroke-grad-4" x1="50%" y1="0%" x2="50%" y2="100%">
+          <stop offset="0%" stop-color="#525252"></stop>
+          <stop offset="100%" stop-color="#292929"></stop>
+        </linearGradient>
+        <!-- D-pad rocker: prebaked directional grads for input.js stroke attr swap. -->
+        <linearGradient id="stroke-grad-4-up" x1="50%" y1="100%" x2="50%" y2="0%">
+          <stop offset="0%" stop-color="#525252"></stop>
+          <stop offset="100%" stop-color="#292929"></stop>
+        </linearGradient>
+        <linearGradient id="stroke-grad-4-down" x1="35%" y1="0%" x2="65%" y2="100%">
+          <stop offset="0%" stop-color="#525252"></stop>
+          <stop offset="100%" stop-color="#292929"></stop>
+        </linearGradient>
+        <linearGradient id="stroke-grad-4-left" x1="100%" y1="50%" x2="0%" y2="50%">
+          <stop offset="0%" stop-color="#525252"></stop>
+          <stop offset="100%" stop-color="#292929"></stop>
+        </linearGradient>
+        <linearGradient id="stroke-grad-4-right" x1="0%" y1="50%" x2="100%" y2="50%">
+          <stop offset="0%" stop-color="#525252"></stop>
+          <stop offset="100%" stop-color="#292929"></stop>
+        </linearGradient>
+        <linearGradient id="grad-41" x1="50%" y1="0%" x2="50%" y2="100%">
+          <stop offset="0%" stop-color="#ff1919"></stop>
+          <stop offset="100%" stop-color="#ff0000"></stop>
+        </linearGradient>
+        <linearGradient id="stroke-grad-41" x1="50%" y1="0%" x2="50%" y2="100%">
+          <stop offset="0%" stop-color="#4a0000"></stop>
+          <stop offset="100%" stop-color="#8a0000"></stop>
+        </linearGradient>
+        <linearGradient id="grad-yellow" x1="50%" y1="0%" x2="50%" y2="100%">
+          <stop offset="0%" stop-color="#ffdd00"></stop>
+          <stop offset="100%" stop-color="#ffcc00"></stop>
+        </linearGradient>
+        <linearGradient id="stroke-grad-yellow" x1="50%" y1="0%" x2="50%" y2="100%">
+          <stop offset="0%" stop-color="#735700"></stop>
+          <stop offset="100%" stop-color="#997500"></stop>
+        </linearGradient>
+        <filter id="shared-inner-2" primitiveunits="objectBoundingBox" x="-50%" y="-50%" width="200%" height="200%">
+          <feFlood flood-color="black" flood-opacity="1.00" result="df"></feFlood>
+          <feComposite operator="out" in2="SourceAlpha" in="df" result="di"></feComposite>
+          <feOffset dx="-0.0008" dy="-0.0116" in="di" result="do"></feOffset>
+          <feGaussianBlur stdDeviation="0.0192 0.0193" in="do" result="db"></feGaussianBlur>
+          <feComposite operator="in" in2="SourceAlpha" in="db" result="sh"></feComposite>
+          <feFlood flood-color="white" flood-opacity="0.29" result="lf"></feFlood>
+          <feComposite operator="out" in2="SourceAlpha" in="lf" result="li"></feComposite>
+          <feOffset dx="0.0008" dy="0.0116" in="li" result="lo"></feOffset>
+          <feGaussianBlur stdDeviation="0.0192 0.0193" in="lo" result="lb"></feGaussianBlur>
+          <feComposite operator="in" in2="SourceAlpha" in="lb" result="gl"></feComposite>
+          <feMerge>
+            <feMergeNode in="SourceGraphic"></feMergeNode>
+            <feMergeNode in="gl"></feMergeNode>
+            <feMergeNode in="sh"></feMergeNode>
+          </feMerge>
+        </filter>
+        <filter id="shared-inner-6" primitiveunits="objectBoundingBox" x="-50%" y="-50%" width="200%" height="200%">
+          <feFlood flood-color="black" flood-opacity="1.00" result="df"></feFlood>
+          <feComposite operator="out" in2="SourceAlpha" in="df" result="di"></feComposite>
+          <feOffset dx="0.0019" dy="-0.0121" in="di" result="do"></feOffset>
+          <feGaussianBlur stdDeviation="0.0201 0.0205" in="do" result="db"></feGaussianBlur>
+          <feComposite operator="in" in2="SourceAlpha" in="db" result="sh"></feComposite>
+          <feFlood flood-color="white" flood-opacity="0.33" result="lf"></feFlood>
+          <feComposite operator="out" in2="SourceAlpha" in="lf" result="li"></feComposite>
+          <feOffset dx="-0.0019" dy="0.0121" in="li" result="lo"></feOffset>
+          <feGaussianBlur stdDeviation="0.0201 0.0205" in="lo" result="lb"></feGaussianBlur>
+          <feComposite operator="in" in2="SourceAlpha" in="lb" result="gl"></feComposite>
+          <feMerge>
+            <feMergeNode in="SourceGraphic"></feMergeNode>
+            <feMergeNode in="gl"></feMergeNode>
+            <feMergeNode in="sh"></feMergeNode>
+          </feMerge>
+        </filter>
+      </defs>
+    </svg>
+
+    <!-- Gameboy Design -->
+    <div id="gameboy-component">
+      <!-- BASE: SVG body from local file -->
+      <div class="item" id="base" style="height: 100%; left: 0%; top: 0%; width: 100%; z-index: 2">
+        <img src="public/base.webp" alt="" style="width: 100%; height: 100%; display: block; object-fit: fill;">
+      </div>
+
+      <!-- D-PAD -->
+      <section class="item" id="dpad" style="height: 13.9173%; isolation: isolate; left: 9.00693%; top: 58.6022%; width: 24.1177%; z-index: 5">
+        <div class="item" id="directional" style="height: 100%; left: 0%; top: 0%; width: 100%; z-index: 3">
+          <svg class="shape" viewBox="0 0 104.43 103.54" preserveAspectRatio="xMidYMid meet" width="104.43" height="103.54">
+            <g>
+              <path class="fill-path" d="M 42.545 0 L 61.884 0 C 66.156 0 69.62 3.434 69.62 7.67 L 69.62 34.515 L 96.694 34.515 C 100.966 34.515 104.43 37.949 104.43 42.185 L 104.43 61.36 C 104.43 65.596 100.966 69.03 96.694 69.03 L 69.62 69.03 L 69.62 95.875 C 69.62 100.111 66.156 103.545 61.884 103.545 L 42.545 103.545 C 38.273 103.545 34.81 100.111 34.81 95.875 L 34.81 69.03 L 7.736 69.03 C 3.463 69.03 0 65.596 0 61.36 L 0 42.185 C 0 37.949 3.463 34.515 7.736 34.515 L 34.81 34.515 L 34.81 7.67 C 34.81 3.434 38.273 0 42.545 0 Z" fill="url(#shared-fill-1)" vector-effect="non-scaling-stroke" filter="url(#shared-inner-2)"></path>
+              <path class="stroke-path" d="M 42.545 0 L 61.884 0 C 66.156 0 69.62 3.434 69.62 7.67 L 69.62 34.515 L 96.694 34.515 C 100.966 34.515 104.43 37.949 104.43 42.185 L 104.43 61.36 C 104.43 65.596 100.966 69.03 96.694 69.03 L 69.62 69.03 L 69.62 95.875 C 69.62 100.111 66.156 103.545 61.884 103.545 L 42.545 103.545 C 38.273 103.545 34.81 100.111 34.81 95.875 L 34.81 69.03 L 7.736 69.03 C 3.463 69.03 0 65.596 0 61.36 L 0 42.185 C 0 37.949 3.463 34.515 7.736 34.515 L 34.81 34.515 L 34.81 7.67 C 34.81 3.434 38.273 0 42.545 0 Z" fill="none" stroke="url(#stroke-grad-4)" stroke-width="2" vector-effect="non-scaling-stroke"></path>
+            </g>
+          </svg>
+        </div>
+        <div class="item" id="right" style="transform: rotate(90deg); height: 20.2733%; left: 74.3787%; opacity: 1; top: 40.7031%; width: 21.1185%; z-index: 4">
+          <svg class="shape" viewBox="0 0 22.05 21" preserveAspectRatio="xMidYMid meet" width="22.05" height="21">
+            <g><path class="fill-path" d="M 2 18.992 L 20.054 18.992 L 11.027 2 L 2 18.992 Z" fill="url(#shared-fill-3)" vector-effect="non-scaling-stroke"></path></g>
+          </svg>
+        </div>
+        <div class="item" id="down" style="transform: rotate(180deg); height: 18.3418%; left: 40.2185%; opacity: 1; top: 76.2956%; width: 20.1609%; z-index: 5">
+          <svg class="shape" viewBox="0 0 21.05 19" preserveAspectRatio="xMidYMid meet" width="21.05" height="19">
+            <g><path class="fill-path" d="M 1.909 17.182 L 19.145 17.182 L 10.527 1.809 L 1.909 17.182 Z" fill="url(#shared-fill-3)" vector-effect="non-scaling-stroke"></path></g>
+          </svg>
+        </div>
+        <div class="item" id="up" style="height: 20.2733%; left: 39.2609%; opacity: 1; top: 6.76037%; width: 21.1185%; z-index: 6">
+          <svg class="shape" viewBox="0 0 22.05 21" preserveAspectRatio="xMidYMid meet" width="22.05" height="21">
+            <g><path class="fill-path" d="M 2 18.992 L 20.054 18.992 L 11.027 2 L 2 18.992 Z" fill="url(#shared-fill-3)" vector-effect="non-scaling-stroke"></path></g>
+          </svg>
+        </div>
+        <div class="item" id="left" style="transform: rotate(270deg); height: 20.2733%; left: 5.43277%; opacity: 1; top: 40.7031%; width: 21.1185%; z-index: 7">
+          <svg class="shape" viewBox="0 0 22.05 21" preserveAspectRatio="xMidYMid meet" width="22.05" height="21">
+            <g><path class="fill-path" d="M 2 18.992 L 20.054 18.992 L 11.027 2 L 2 18.992 Z" fill="url(#shared-fill-3)" vector-effect="non-scaling-stroke"></path></g>
+          </svg>
+        </div>
+        <div class="item" id="mid" style="height: 22.7437%; left: 38.3033%; opacity: 1; top: 39.5964%; width: 23.3984%; z-index: 8">
+          <svg class="shape" viewBox="0 0 24.43 23.55" width="24.43" height="23.55" preserveAspectRatio="xMidYMid meet">
+            <g><path class="fill-path" d="M 11.774955 0 L 12.659952 0 A 11.774955 11.774955 0 0 1 24.434907 11.774955 L 24.434907 11.774955 A 11.774955 11.774955 0 0 1 12.659952 23.54991 L 11.774955 23.54991 A 11.774955 11.774955 0 0 1 0 11.774955 L 0 11.774955 A 11.774955 11.774955 0 0 1 11.774955 0 Z" fill="url(#shared-fill-4)" vector-effect="non-scaling-stroke"></path></g>
+          </svg>
+        </div>
+        <div class="item" id="dpad-stroke" style="height: 100%; left: 0%; top: 0%; width: 100%; z-index: 2">
+          <svg class="shape" viewBox="0 0 104.43 103.54" preserveAspectRatio="xMidYMid meet" width="104.43" height="103.54">
+            <defs><path d="M 42.545 0 L 61.884 0 C 66.156 0 69.62 3.434 69.62 7.67 L 69.62 34.515 L 96.694 34.515 C 100.966 34.515 104.43 37.949 104.43 42.185 L 104.43 61.36 C 104.43 65.596 100.966 69.03 96.694 69.03 L 69.62 69.03 L 69.62 95.875 C 69.62 100.111 66.156 103.545 61.884 103.545 L 42.545 103.545 C 38.273 103.545 34.81 100.111 34.81 95.875 L 34.81 69.03 L 7.736 69.03 C 3.463 69.03 0 65.596 0 61.36 L 0 42.185 C 0 37.949 3.463 34.515 7.736 34.515 L 34.81 34.515 L 34.81 7.67 C 34.81 3.434 38.273 0 42.545 0 Z" id="path-9"></path></defs>
+            <g>
+              <use class="fill-path" href="#path-9" fill="none"></use>
+              <use class="stroke-path" href="#path-9" fill="none" stroke="#000000" stroke-width="6"></use>
+            </g>
+          </svg>
+        </div>
+        <div id="dpad-hitarea" aria-hidden="true"></div>
+      </section>
+
+      <!-- B BUTTON -->
+      <div class="item" id="b" style="height: 6.85484%; isolation: isolate; left: 60.0462%; top: 63.9785%; width: 12.8515%; z-index: 6">
+        <div class="item" id="b-butt" style="height: 100%; left: 0%; top: 0%; width: 100%; z-index: 3">
+          <img class="shape" src="public/button-b.webp" alt="" draggable="false" style="width: 100%; height: 100%; display: block; object-fit: fill;">
+        </div>
+        <div class="item" id="b-stroke" style="height: 95.6684%; left: 10.7823%; opacity: 1; top: 0%; width: 89.2177%; z-index: 2">
+          <svg class="shape" viewBox="0 0 49.65 48.79" width="49.65" height="48.79" preserveAspectRatio="xMidYMid meet">
+            <defs><path d="M 24.39545 0 L 25.251431 0 A 24.39545 24.39545 0 0 1 49.646881 24.39545 L 49.646881 24.39545 A 24.39545 24.39545 0 0 1 25.251431 48.7909 L 24.39545 48.7909 A 24.39545 24.39545 0 0 1 0 24.39545 L 0 24.39545 A 24.39545 24.39545 0 0 1 24.39545 0 Z" id="path-13"></path></defs>
+            <g>
+              <use class="fill-path" href="#path-13" fill="none"></use>
+              <use class="stroke-path" href="#path-13" fill="none" stroke="#000000" stroke-width="6"></use>
+            </g>
+          </svg>
+        </div>
+      </div>
+      <div id="b-hitarea" aria-hidden="true"></div>
+
+      <!-- A BUTTON -->
+      <div class="item" id="a" style="height: 6.72043%; isolation: isolate; left: 77.8291%; top: 60.3495%; width: 12.8589%; z-index: 7">
+        <div class="item" id="a-butt" style="height: 100%; left: 0%; top: 0%; width: 100%; z-index: 3">
+          <img class="shape" src="public/button-a.webp" alt="" draggable="false" style="width: 100%; height: 100%; display: block; object-fit: fill;">
+        </div>
+        <div class="item" id="a-stroke" style="height: 97.5818%; left: 10.834%; opacity: 1; top: 0%; width: 89.166%; z-index: 2">
+          <svg class="shape" viewBox="0 0 49.65 48.79" width="49.65" height="48.79" preserveAspectRatio="xMidYMid meet">
+            <defs><path d="M 24.39545 0 L 25.251431 0 A 24.39545 24.39545 0 0 1 49.646881 24.39545 L 49.646881 24.39545 A 24.39545 24.39545 0 0 1 25.251431 48.7909 L 24.39545 48.7909 A 24.39545 24.39545 0 0 1 0 24.39545 L 0 24.39545 A 24.39545 24.39545 0 0 1 24.39545 0 Z" id="path-17"></path></defs>
+            <g>
+              <use class="fill-path" href="#path-17" fill="none"></use>
+              <use class="stroke-path" href="#path-17" fill="none" stroke="#000000" stroke-width="6"></use>
+            </g>
+          </svg>
+        </div>
+      </div>
+      <div id="a-hitarea" aria-hidden="true"></div>
+
+      <!-- SCREEN -->
+      <section class="item" id="screen" style="height: 46.5581%; isolation: isolate; left: 5.65%; top: 3.76344%; width: 88.0083%; z-index: 3">
+        <div class="item" id="scr-base" style="height: 100%; left: 0.468011%; opacity: 1; top: 0%; width: 99.532%; z-index: 2">
+          <svg class="shape" viewBox="0 0 379.29 346.39" preserveAspectRatio="xMidYMid meet" width="379.29" height="346.39">
+            <defs><path d="M 17.422 2.999 C 149.314 2.999 229.29 3.114 361.183 3.114 C 368.72 3.114 375.014 3.616 376.144 13.944 C 376.521 134.433 376.059 211.574 376.059 320.045 C 375.592 328.034 365.158 331.594 357.303 333.114 C 324.94 339.379 296.429 339.832 263.525 341.827 C 237.077 343.432 214.333 343.393 187.837 343.393 C 162.627 343.393 140.987 343.387 115.825 341.827 C 82.925 339.788 54.41 339.379 22.047 333.114 C 14.193 331.594 3.756 328.034 3.292 320.045 C 3.292 211.676 2.758 135.099 3.135 14.61 C 4.265 4.283 9.885 2.999 17.422 2.999 Z" id="path-19"></path></defs>
+            <g>
+              <use class="fill-path" href="#path-19" fill="url(#shared-fill-7)"></use>
+              <use class="stroke-path" href="#path-19" fill="none" stroke="url(#shared-stroke-8)" stroke-width="2"></use>
+            </g>
+          </svg>
+        </div>
+        
+        <div class="item" id="screen-main" style="height: 63.7552%; left: 18.8577%; opacity: 1; top: 13.261%; width: 64.0173%; z-index: 3">
+          <svg class="shape" viewBox="0 0 243.95 220.84" width="243.95" height="220.84" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+            <defs><path d="M0 0h243.95450227732178v220.84302311420709H0z" id="path-20"></path></defs>
+            <g>
+              <use class="fill-path" href="#path-20" fill="#1a1f35"></use>
+              <use class="stroke-path" href="#path-20" fill="none" stroke="url(#shared-stroke-9)" stroke-width="2"></use>
+            </g>
+          </svg>
+          <div id="shell-lcd-demo" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:8%;box-sizing:border-box;pointer-events:none;z-index:4;font-family:'Press Start 2P',monospace;text-align:center;">
+            <div style="font-size:clamp(14px,4.2cqi,28px);line-height:1.35;color:rgba(210,220,230,0.92);">SHELL DEMO</div>
+          </div>
+        </div>
+        <div class="item" id="power-light" style="height: 2.96536%; left: 4.72347%; opacity: 1; top: 31.7951%; width: 2.47084%; z-index: 5">
+          <svg class="shape" viewBox="0 0 9.42 10.27" width="9.42" height="10.27" preserveAspectRatio="xMidYMid meet">
+            <g><path class="fill-path" d="M 4.707894 0 L 4.707894 0 A 4.707894 4.707894 0 0 1 9.415788 4.707894 L 9.415788 5.563875 A 4.707894 4.707894 0 0 1 4.707894 10.271769 L 4.707894 10.271769 A 4.707894 4.707894 0 0 1 0 5.563875 L 0 4.707894 A 4.707894 4.707894 0 0 1 4.707894 0 Z" fill="url(#shared-fill-10)" vector-effect="non-scaling-stroke"></path></g>
+          </svg>
+        </div>
+        <p class="item" id="txt-power" style="height: 8.08332%; left: 0%; top: 34.9707%; width: 19.4187%; z-index: 7">
+          <svg viewBox="0 0 74 28" class="shape shape-textbox" preserveAspectRatio="xMidYMid meet" data-shape-type="textbox" width="74" height="28">
+            <text x="37" text-anchor="middle" font-family='"Inter", sans-serif' font-size="12" font-weight="700" fill="#5C5C5C" letter-spacing="-0.6"><tspan x="37" y="17.6">POWER</tspan></text>
+          </svg>
+        </p>
+        <div class="item" id="logo-gbc" style="height: 9.57416%; left: 20.6937%; opacity: 1; top: 82.791%; width: 58.6158%; z-index: 4">
+          <svg class="logo-face-mark" viewBox="0 0 361.05 46.67" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+            <g class="logo-color">
+              <path fill="#b61f33" d="M204.82,15.03c.73-1.69,9.41-13.89,17.81-14.72,5.43-1.02,13.3.3,13.16,7.3.02,1.58-.19,3.36-1.16,4.66-1.4,1.99-5.03,1.87-6.84.49-.86-.56-1.33-1.55-1.71-2.4-1.42-1.24-5.83.75-8.17,3.19-4.66,5.32-11.08,17.56-2.63,21.62,3.96,1.5,9.99.73,14.3.93,4.68-.47,8.18,4.64,4.74,8.32-1.26,1.18-3.28,1.46-5.08,1.53-3.19.12-7.95.03-10.99-.03-17.7.35-20.65-18.38-13.46-30.85l.02-.04h.01Z"/>
+              <path fill="#432f8d" d="M262.07,11.11c-4.4-3.89-11.42-3.64-17.14-1.65-5.46,1.98-9.41,8.07-10.48,9.83-.4.67-.63,1.05-.98,1.86-3.85,10.18-2.34,17.84,8.7,22.35,5.07,2.02,14.67.33,20.26-3.41,5.03-3.88,7.11-9.74,7.24-15.55-.08-5.05-3.46-10.05-7.46-13.31l-.15-.12h.01ZM253.63,35.14c-6.25,2.46-12.4-2.89-11.69-9.28.21-1.25.27-1.13.88-2.24,1.53-2.58,4.11-5.66,7.38-6.25,3.12-.7,6.99.62,8.02,3.25,2.23,4.93,1.53,12.55-4.39,14.45l-.21.07h.01Z"/>
+              <path fill="#6da742" d="M277.86,10.51c.17,3.5.34,13.28.45,16.82.09,1.67-.18,4.35.65,5.71.84,1.01,2.49.21,3.67-.1,2.94-1.15,5.91-1.91,8.94-1.01,3.89.98,4.7,6.48,1.54,8.83-1.25,1.04-2.79,1.18-4.33,1.35-2.65.26-5.44,1.18-8.07,2.29-3.45,2.13-9.48,2.85-10.19-2.42-.67-4.2-1.32-8.26-1.25-11.7-.23-5.95-.16-12.62-2.01-18.31-.67-2.35-1.97-5-1.4-7.42.43-1.59,2.53-3.01,4.4-3.61,4.78-1.38,7.53,5.66,7.59,9.44v.13h0Z"/>
+              <path fill="#d7ae28" d="M293.85,38.94c3.22,4.87,10.27,5.85,16.16,5.26,6.55-1.1,11.64-5.77,13.9-7.82,7-7.82,6.4-18.5-2.33-24.87-4-3.14-12.97-3.85-19.06-1.72-5.33,2.05-9.54,6.82-11.56,11.69-2.15,5.13-.62,12.78,2.78,17.31l.11.15ZM308.15,18.13c7.14-.8,11.7,3.87,9.43,10.75-.52,1.13-.51.97-1.29,1.85-1.46,1.53-3.7,3.24-6.03,3.73-3.77.88-9.26-1.57-9.72-5.17-.9-5.1,1.68-11,7.39-11.13l.23-.02h-.01Z"/>
+              <path fill="#007c6b" d="M360.03,38.09c-19.15-16.95-14.31-7.81-4.72-19.01,3.82-4.3,2.73-11.78-2.72-14.19-1.84-.86-4.07-1.52-6.14-2.03-5.9-1.61-10.65-2.02-16.05,1.55-2.07,1.15-4.05,2.99-4.51,5.4-.49,2.32-.08,4.13.34,6.19.35,1.91,1.12,7.66,1.57,11.49.17,1.58.39,2.91.29,4.45,0,2.3-1.44,5.19-1.59,7.66-.08,4.19,5.18,8.29,8.88,5.19,2.04-1.57,1.94-5.15,2-8.11.1-.79-.3-3.61.61-2.61,1.59,1.3,8.07,6.7,11.91,9.75,1.87,1.42,3.03,2.61,4.87,2.83,4.42.46,8.13-4.78,5.28-8.51l-.05-.06h.03ZM336.7,12.2c14.85-1.35,13.79,4.77.89,6.97-.17,0-.15-.12-.19-.32-.17-1.66-.61-5.11-.72-6.61l.02-.03h0Z"/>
+            </g>
+            <g id="logo-miboy" class="logo-miboy">
+              <path d="M25.25,5.06l5.41,25.2,14.44-25.2h10.48l.48,39.69h-9.78l-.22-25.32-14.68,25.32h-6.17l-5.66-26.13-9.53,26.13H0L14.48,5.06h10.77Z"/>
+              <path d="M74.14,5.06l-7.32,39.69h-10.18l7.32-39.69h10.18Z"/>
+              <path d="M101.84,5.06c9.08,0,13.69,3.08,13.46,9.43-.14,3.96-2.1,6.93-5.9,9.08,3.79,1.57,6.89,4.36,6.73,8.79-.18,5.18-2.3,12.4-18.36,12.4h-16.59l7.26-39.69h13.39ZM94.6,27.47l-2.01,10.77h3.72c6.69,0,9.01-1.46,9.16-5.59.13-3.67-2.15-5.18-7.5-5.18h-3.38ZM97.48,11.58l-1.79,9.72h2.39c3.78,0,7.07-.7,7.24-5.65.1-2.74-1.6-4.07-5.62-4.07h-2.21Z"/>
+              <path d="M158.84,22.64c-.46,13.21-9.87,22.64-23.72,22.64-9.66,0-19.72-5.3-19.27-18.04.51-14.67,11.04-22.7,24.19-22.7,11.06,0,19.2,6.87,18.81,18.1ZM135.61,36.31c7.39,0,12.26-6.05,12.5-12.92.2-5.82-3.2-9.89-8.85-9.89-7.97,0-12.45,6.52-12.68,13.21-.2,5.65,3.45,9.6,9.03,9.6Z"/>
+              <path d="M166.85,5.06l4.18,15.31,9.96-15.31h11.06l-17.09,24.5-2.8,15.19h-10.24l2.93-15.54-8.18-24.15h10.18Z"/>
+            </g>
+          </svg>
+          <button type="button" class="logo-hit" aria-label="Toggle menu and game" tabindex="-1"></button>
+          </div>
+        <div class="item" id="pwr-accent" style="height: 5.7738%; left: 7.65398%; top: 30.9677%; width: 6.69863%; z-index: 6">
+          <svg class="shape" viewBox="0 0 25.53 20" preserveAspectRatio="xMidYMid meet" width="25.53" height="20">
+            <g><path class="fill-path" d="M 23.526 7.631 Q 23.61 13.116 18.67 13.584 Q 21.182 11.007 21.182 7.899 Q 21.182 3.799 18 2.012 Q 23.445 2.311 23.526 7.631 Z M 15.526 7.619 Q 15.61 13.104 10.67 13.572 Q 13.182 10.994 13.182 7.886 Q 13.182 3.787 10 2 Q 15.445 2.299 15.526 7.619 Z M 7.526 7.619 Q 7.61 13.104 2.67 13.572 Q 5.182 10.994 5.182 7.886 Q 5.182 3.787 2 2 Q 7.445 2.299 7.526 7.619 Z" fill="#696969" vector-effect="non-scaling-stroke"></path></g>
+          </svg>
+        </div>
+      </section>
+
+      <!-- START/SELECT -->
+      <section class="item" id="start-select" style="height: 3.25626%; isolation: isolate; left: 38.7991%; top: 80.6452%; width: 22.5704%; z-index: 4">
+        <div class="item" id="inset-select" style="height: 100%; left: 0%; opacity: 1; top: 0%; width: 42.6991%; z-index: 2; pointer-events: none;">
+          <svg class="shape" viewBox="0 0 41.73 24.23" preserveAspectRatio="xMidYMid meet" width="41.73" height="24.23">
+            <defs><path d="M 15.243 4.383 Q 21.03 3.617 26.486 4.383 C 29.824 4.851 37.73 6.955 37.73 12.1 C 37.73 17.245 29.795 19.165 26.486 19.817 Q 22.339 20.636 15.243 19.817 Q 4 17.888 4 12.1 Q 4 6.312 15.243 4.383 Z" id="path-26"></path></defs>
+            <g>
+              <use class="fill-path" href="#path-26" fill="none"></use>
+              <use class="stroke-path" href="#path-26" fill="none" stroke="#000000" stroke-width="4"></use>
+            </g>
+          </svg>
+        </div>
+        <div class="item" id="inset-start" style="height: 100%; left: 57.3509%; top: 0%; width: 42.6991%; z-index: 3; pointer-events: none;">
+          <svg class="shape" viewBox="0 0 41.73 24.23" preserveAspectRatio="xMidYMid meet" width="41.73" height="24.23">
+            <defs><path d="M 15.243 4.383 Q 21.03 3.617 26.486 4.383 C 29.824 4.851 37.73 6.955 37.73 12.1 C 37.73 17.245 29.795 19.165 26.486 19.817 Q 22.339 20.636 15.243 19.817 Q 4 17.888 4 12.1 Q 4 6.312 15.243 4.383 Z" id="path-27"></path></defs>
+            <g>
+              <use class="fill-path" href="#path-27" fill="no-fill"></use>
+              <use class="stroke-path" href="#path-27" fill="none" stroke="#000000" stroke-width="4"></use>
+            </g>
+          </svg>
+        </div>
+        <div class="item" id="select" style="height: 82.7357%; left: 2.17141%; opacity: 1; top: 8.63217%; width: 38.3563%; z-index: 4">
+          <svg class="shape" viewBox="0 0 37.49 20.04" preserveAspectRatio="xMidYMid meet" width="37.49" height="20.04">
+            <defs><path id="path-select" d="M 13.121 2.291 Q 18.908 1.526 24.364 2.291 C 27.702 2.76 35.608 4.864 35.608 10.009 C 35.608 15.154 27.673 17.073 24.364 17.726 Q 20.216 18.545 13.121 17.726 Q 1.878 15.797 1.878 10.009 Q 1.878 4.221 13.121 2.291 Z"></path></defs>
+            <g>
+              <g class="btn-moving-part">
+                <use class="fill-path" href="#path-select" fill="url(#shared-fill-11)" vector-effect="non-scaling-stroke"></use>
+                <use class="active-fill" href="#path-select" fill="url(#shared-fill-11)" vector-effect="non-scaling-stroke"></use>
+              </g>
+            </g>
+          </svg>
+        </div>
+        <div class="item" id="start" style="height: 82.7357%; left: 59.4723%; opacity: 1; top: 8.63217%; width: 38.3563%; z-index: 5">
+          <svg class="shape" viewBox="0 0 37.49 20.04" preserveAspectRatio="xMidYMid meet" width="37.49" height="20.04">
+            <defs><path id="path-start" d="M 13.121 2.291 Q 18.908 1.526 24.364 2.291 C 27.702 2.76 35.608 4.864 35.608 10.009 C 35.608 15.154 27.673 17.073 24.364 17.726 Q 20.216 18.545 13.121 17.726 Q 1.878 15.797 1.878 10.009 Q 1.878 4.221 13.121 2.291 Z"></path></defs>
+            <g>
+              <g class="btn-moving-part">
+                <use class="fill-path" href="#path-start" fill="url(#shared-fill-11)" vector-effect="non-scaling-stroke"></use>
+                <use class="active-fill" href="#path-start" fill="url(#shared-fill-11)" vector-effect="non-scaling-stroke"></use>
+              </g>
+            </g>
+          </svg>
+        </div>
+      </section>
+
+      <!-- Face Controls mark (decorative in shell demo) -->
+      <div id="gb-keys-hotspots" class="gb-keys-hotspots" aria-hidden="true">
+        <div id="gb-keys-toggle" class="gb-keys-hotspot has-art" role="button" tabindex="0" aria-label="Menu" aria-expanded="false" aria-controls="shell-help-panel">
+          <img class="gb-face-hotspot-art" src="public/keys-standalone.webp" alt="">
+        </div>
+      </div>
+
+      
+
+      <!-- START/SELECT HIT AREAS -->
+      <div id="select-hitarea" aria-hidden="true"></div>
+      <div id="start-hitarea" aria-hidden="true"></div>
+    </div><!-- end #gameboy-component -->
+  </div><!-- end #gameboy-container -->
+
+  <div id="shell-confirm" hidden>
+    <div class="shell-confirm-backdrop" data-shell-confirm-dismiss></div>
+    <div class="shell-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="shell-confirm-title" aria-describedby="shell-confirm-message">
+      <div class="shell-confirm-header">
+        <div id="shell-confirm-title" class="shell-confirm-title">Open Link</div>
+      </div>
+      <div class="shell-confirm-content">
+        <p id="shell-confirm-message" class="shell-confirm-message">Opens DoodleDev in a new tab. This device is available in the Preset menu.</p>
+        <div class="shell-confirm-actions">
+          <button type="button" class="shell-confirm-btn" data-shell-confirm-dismiss>Cancel</button>
+          <button type="button" class="shell-confirm-btn shell-confirm-btn--primary" id="shell-confirm-open">Open</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/shellPress.js" defer></script>
+</body>
+</html>
