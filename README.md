@@ -1,6 +1,6 @@
 # MI Boy Color
 
-Open-source **handheld shell** for MI Boy Color. Device chrome HTML, CSS, and face assets only. No emulator, menus, or ROM library in this repo.
+Open-source **handheld shell** for MI Boy Color. Device chrome HTML, CSS, and face assets only. No emulator, menus, or ROM library in this repo. The working Game Boy Color emulator is on [MitchIvin XP](https://mitchivin.com/).
 
 Live demo: [builds.doodledev.app/#/miboy](https://builds.doodledev.app/?go=1#/miboy).
 
@@ -65,8 +65,7 @@ Open whatever URL it prints (usually `http://localhost:3000`). You should see th
 ## Credits
 
 Built by **[Mitch Ivin](https://mitchivin.com/)**.  
-Shell designed in **[DoodleDev](https://doodledev.app)**.  
-Emulation by **[Grant Galitz / GameBoy-Online](https://github.com/taisel/GameBoy-Online)**.
+Shell designed in **[DoodleDev](https://doodledev.app)**.
 
 ## License
 
